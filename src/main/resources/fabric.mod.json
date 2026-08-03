@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "eloquent",
+	"version": "${version}",
+	"name": "Eloquent",
+	"description": "Every Minecraft mob gets a unique AI identity, memory, and voice.",
+	"authors": [
+		"zorreth"
+	],
+	"contact": {
+		"homepage": "https://zorreth.com/about/eloquent",
+		"sources": "https://github.com/zorreth/eloquent"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/eloquent/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.zorreth.eloquent.Eloquent"
+		],
+		"client": [
+			"com.zorreth.eloquent.client.EloquentClient"
+		]
+	},
+	"mixins": [
+		"eloquent.mixins.json",
+		{
+			"config": "eloquent.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
