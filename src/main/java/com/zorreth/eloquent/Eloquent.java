@@ -18,10 +18,6 @@ import java.util.concurrent.CompletableFuture;
 
 public class Eloquent implements ModInitializer {
     public static final String MOD_ID = "eloquent";
-
-    // This logger is used to write text to the console and the log file.
-    // It is considered best practice to use your mod id as the logger's name.
-    // That way, it's clear which mod wrote info, warnings, and errors.
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     @Override
@@ -39,6 +35,8 @@ public class Eloquent implements ModInitializer {
         UseEntityCallback.EVENT.register((player, _, hand, _, _) -> {
             if (player instanceof ServerPlayer serverPlayer) {
                 if (hand == InteractionHand.MAIN_HAND) {
+                    LOGGER.info("Starting response generation");
+
                     CompletableFuture.supplyAsync(() -> {
                         String systemPrompt = "You are a pig in Minecraft. Keep your responses short and clean, make appropriate sounds.";
                         return GenerativeService.generateAsync(systemPrompt, "Player interacted with you");
