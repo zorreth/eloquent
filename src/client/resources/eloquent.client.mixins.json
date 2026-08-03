@@ -2,9 +2,7 @@
 	"required": true,
 	"package": "com.zorreth.eloquent.client.mixin",
 	"compatibilityLevel": "JAVA_25",
-	"client": [
-      "TitleScreenMixin"
-	],
+	"client": [],
 	"injectors": {
 		"defaultRequire": 1
 	},

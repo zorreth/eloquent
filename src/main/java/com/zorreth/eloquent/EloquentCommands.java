@@ -8,6 +8,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.permissions.Permissions;
 
+import java.util.concurrent.CompletableFuture;
+
 public class EloquentCommands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register(((dispatcher, _, _) -> {
@@ -16,11 +18,19 @@ public class EloquentCommands {
                     .then(Commands.literal("setkey")
                             .then(Commands.argument("key", StringArgumentType.greedyString())
                                     .executes(context -> {
-                                        ConfigManager.INSTANCE.apiKey = StringArgumentType.getString(context, "key");
+                                        String apiKey = StringArgumentType.getString(context, "key");
+
+                                        ConfigManager.INSTANCE.apiKey = apiKey;
                                         ConfigManager.save();
 
                                         context.getSource().sendSuccess(() ->
-                                                Component.literal("§a[Eloquent] API Key updated successfully!"), false);
+                                                Component.literal("§a[Eloquent] API Key updated to: §f" + apiKey), false);
+
+                                        if (apiKey.length() > 200) {
+                                            context.getSource().sendSuccess(() ->
+                                                    Component.literal("§e[Eloquent] Warning: Your API key is very long - please check if it has been pasted fully. If not, you might want to edit the eloquent.json file directly."), false);
+                                        }
+
                                         return Command.SINGLE_SUCCESS;
                                     })
                             )
@@ -75,22 +85,22 @@ public class EloquentCommands {
                                 return Command.SINGLE_SUCCESS;
                             })
                     )
-                    .then(Commands.literal("config")
-                            .executes(context -> {
-                                context.getSource().sendSuccess(() ->
-                                        Component.literal("§a[Eloquent] Loaded configuration:"), false);
+                    .then(Commands.literal("chat")
+                            .then(Commands.argument("message", StringArgumentType.greedyString())
+                                    .executes(context -> {
+                                        String message = StringArgumentType.getString(context, "message");
 
-                                context.getSource().sendSuccess(() ->
-                                        Component.literal("§7 - Base URL: §f" + ConfigManager.INSTANCE.baseUrl), false);
+                                        CompletableFuture.supplyAsync(() -> {
+                                            String systemPrompt = "You are a helpful Minecraft assistant.";
+                                            return AiManager.generateAsync(systemPrompt, message);
+                                        }).thenAccept(aiReply -> {
+                                            context.getSource().sendSuccess(() ->
+                                                    Component.literal(ConfigManager.INSTANCE.model + ": " + aiReply), false);
+                                        });
 
-                                context.getSource().sendSuccess(() ->
-                                        Component.literal("§7 - API Key: §f" + ConfigManager.INSTANCE.apiKey), false);
-
-                                context.getSource().sendSuccess(() ->
-                                        Component.literal("§7 - Model: §f" + ConfigManager.INSTANCE.model), false);
-
-                                return Command.SINGLE_SUCCESS;
-                            })
+                                        return Command.SINGLE_SUCCESS;
+                                    })
+                            )
                     )
             );
         }));
