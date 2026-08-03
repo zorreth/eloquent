@@ -32,6 +32,9 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// An official OpenAI SDK
+	implementation "com.openai:openai-java:4.49.0"
 }
 
 processResources {

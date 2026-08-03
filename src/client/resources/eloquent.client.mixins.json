@@ -3,7 +3,7 @@
 	"package": "com.zorreth.eloquent.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"ExampleClientMixin"
+      "TitleScreenMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
