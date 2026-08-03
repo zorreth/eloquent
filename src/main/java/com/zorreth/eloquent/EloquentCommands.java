@@ -14,8 +14,8 @@ public class EloquentCommands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register(((dispatcher, _, _) -> {
             dispatcher.register(Commands.literal("eloquent")
-                    .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                     .then(Commands.literal("setkey")
+                            .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                             .then(Commands.argument("key", StringArgumentType.greedyString())
                                     .executes(context -> {
                                         String apiKey = StringArgumentType.getString(context, "key");
@@ -36,6 +36,7 @@ public class EloquentCommands {
                             )
                     )
                     .then(Commands.literal("setmodel")
+                            .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                             .then(Commands.argument("model", StringArgumentType.greedyString())
                                     .executes(context -> {
                                         String model = StringArgumentType.getString(context, "model");
@@ -50,6 +51,7 @@ public class EloquentCommands {
                             )
                     )
                     .then(Commands.literal("setbaseurl")
+                            .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                             .then(Commands.argument("baseurl", StringArgumentType.greedyString())
                                     .executes(context -> {
                                         String baseURL = StringArgumentType.getString(context, "baseurl");
@@ -64,6 +66,7 @@ public class EloquentCommands {
                             )
                     )
                     .then(Commands.literal("reload")
+                            .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                             .executes(context -> {
                                 ConfigManager.load();
 
@@ -91,7 +94,7 @@ public class EloquentCommands {
                                         String message = StringArgumentType.getString(context, "message");
 
                                         CompletableFuture.supplyAsync(() -> {
-                                            String systemPrompt = "You are a helpful Minecraft assistant.";
+                                            String systemPrompt = "You are a helpful Minecraft assistant. You answer in a Minecraft chat, so keep your responses short and don't use markdown formatting.";
                                             return AiManager.generateAsync(systemPrompt, message);
                                         }).thenAccept(aiReply -> {
                                             context.getSource().sendSuccess(() ->

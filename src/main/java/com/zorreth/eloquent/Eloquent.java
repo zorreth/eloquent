@@ -24,6 +24,7 @@ public class Eloquent implements ModInitializer {
 
         ConfigManager.init();
         EloquentCommands.register();
+        AiManager.reloadClient();
     }
 
     public static Identifier id(String path) {
