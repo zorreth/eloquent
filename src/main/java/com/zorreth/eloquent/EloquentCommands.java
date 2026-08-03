@@ -2,8 +2,11 @@ package com.zorreth.eloquent;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.zorreth.eloquent.config.ConfigManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.permissions.Permissions;
@@ -13,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 public class EloquentCommands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register(((dispatcher, _, _) -> {
-            dispatcher.register(Commands.literal("eloquent")
+            LiteralCommandNode<CommandSourceStack> eloquentNode = dispatcher.register(Commands.literal("eloquent")
                     .then(Commands.literal("setkey")
                             .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                             .then(Commands.argument("key", StringArgumentType.greedyString())
@@ -106,6 +109,10 @@ public class EloquentCommands {
                             )
                     )
             );
+
+            CommandNode<CommandSourceStack> chatNode = eloquentNode.getChild("chat");
+
+            dispatcher.register(Commands.literal("e").redirect(chatNode));
         }));
     }
 }
