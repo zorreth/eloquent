@@ -1,30 +1,20 @@
-package com.zorreth.eloquent.client.config;
+package com.zorreth.eloquent.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static com.zorreth.eloquent.Eloquent.LOGGER;
+
 public class ConfigManager {
-    public static final String MOD_ID = "eloquent";
-
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static Path configPath;
 
     public static EloquentConfig INSTANCE = new EloquentConfig();
-
-    public static class EloquentConfig {
-        public String baseUrl = "https://api.openai.com/v1";
-        public String model = "gpt-5.6";
-        public String apiKey = "";
-    }
 
     public static void init() {
         configPath = FabricLoader.getInstance().getConfigDir().resolve("eloquent.json");
