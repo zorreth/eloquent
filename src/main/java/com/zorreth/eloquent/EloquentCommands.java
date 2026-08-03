@@ -77,7 +77,7 @@ public class EloquentCommands {
                                         Component.literal("§a[Eloquent] Configuration reloaded."), false);
 
                                 try {
-                                    AiManager.reloadClient();
+                                    GenerativeService.reloadClient();
 
                                     context.getSource().sendSuccess(() ->
                                             Component.literal("§a[Eloquent] AI features enabled!"), false);
@@ -98,7 +98,7 @@ public class EloquentCommands {
 
                                         CompletableFuture.supplyAsync(() -> {
                                             String systemPrompt = "You are a helpful Minecraft assistant. You answer in a Minecraft chat, so keep your responses short and don't use markdown formatting.";
-                                            return AiManager.generateAsync(systemPrompt, message);
+                                            return GenerativeService.generateAsync(systemPrompt, message);
                                         }).thenAccept(aiReply -> {
                                             context.getSource().sendSuccess(() ->
                                                     Component.literal(ConfigManager.INSTANCE.model + ": " + aiReply), false);

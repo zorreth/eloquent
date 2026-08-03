@@ -7,7 +7,7 @@ import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.zorreth.eloquent.config.ConfigManager;
 
-public class AiManager {
+public class GenerativeService {
     private static OpenAIClient openAIClient;
 
     public static void reloadClient() {
