@@ -6,11 +6,17 @@ import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.zorreth.eloquent.config.ConfigManager;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.phys.AABB;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class EloquentCommands {
@@ -95,14 +101,40 @@ public class EloquentCommands {
                             .then(Commands.argument("message", StringArgumentType.greedyString())
                                     .executes(context -> {
                                         String message = StringArgumentType.getString(context, "message");
+                                        CommandSourceStack source = context.getSource();
 
-                                        CompletableFuture.supplyAsync(() -> {
-                                            String systemPrompt = "You are a helpful Minecraft assistant. You answer in a Minecraft chat, so keep your responses short and don't use markdown formatting.";
-                                            return GenerativeService.generateAsync(systemPrompt, message);
-                                        }).thenAccept(aiReply -> {
-                                            context.getSource().sendSuccess(() ->
-                                                    Component.literal(ConfigManager.INSTANCE.model + ": " + aiReply), false);
-                                        });
+                                        ServerPlayer player = source.getPlayerOrException();
+                                        ServerLevel level = player.level();
+
+                                        AABB searchBox = player.getBoundingBox().inflate(15.0D);
+
+                                        List<Mob> nearbyMobs = level.getEntitiesOfClass(Mob.class, searchBox,
+                                                mob -> player.distanceTo(mob) <= 15.0F
+                                        );
+
+                                        final String systemPrompt;
+                                        final String mobName;
+
+                                        if (!nearbyMobs.isEmpty()) {
+                                            int randomIndex = player.getRandom().nextInt(nearbyMobs.size());
+                                            Mob randomMob = nearbyMobs.get(randomIndex);
+                                            mobName = randomMob.getPlainTextName();
+
+                                            systemPrompt = "You are a Minecraft " + mobName + ". Act like it, keep your responses short and don't use markdown formatting.";
+                                        } else {
+                                            mobName = ConfigManager.INSTANCE.model;
+                                            systemPrompt = "You are a helpful Minecraft assistant. You answer in a Minecraft chat, so keep your responses short and don't use markdown formatting.";
+                                        }
+
+                                        CompletableFuture
+                                                .supplyAsync(() -> GenerativeService.generateAsync(systemPrompt, message))
+                                                .thenAccept(aiReply -> {
+                                                    SpeakPayload payload = new SpeakPayload(aiReply);
+                                                    ServerPlayNetworking.send(player, payload);
+
+                                                    context.getSource().sendSuccess(() ->
+                                                            Component.literal(mobName + ": " + aiReply), false);
+                                                });
 
                                         return Command.SINGLE_SUCCESS;
                                     })
