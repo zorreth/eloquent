@@ -6,6 +6,14 @@ plugins {
 version = project.mod_version
 group = project.maven_group
 
+configurations {
+    transitiveInclude {
+        exclude group: 'com.mojang'
+        exclude group: 'org.jetbrains.kotlin'
+        exclude group: 'org.jetbrains.kotlinx'
+    }
+}
+
 repositories {
     // Add repositories to retrieve artifacts from in here.
     // You should only use this when depending on other mods because
@@ -33,8 +41,12 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-    // An official OpenAI SDK
-    implementation "com.openai:openai-java:4.49.0"
+    // The official OpenAI SDK
+    implementation transitiveInclude("com.openai:openai-java:4.50.0")
+
+    configurations.transitiveInclude.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+        include(artifact.moduleVersion.id.toString())
+    }
 }
 
 processResources {
