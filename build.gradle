@@ -42,7 +42,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
     // The official OpenAI SDK
-    implementation transitiveInclude("com.openai:openai-java:4.50.0")
+    implementation transitiveInclude("com.openai:openai-java:${project.openai_java_version}")
 
     configurations.transitiveInclude.resolvedConfiguration.resolvedArtifacts.each { artifact ->
         include(artifact.moduleVersion.id.toString())
