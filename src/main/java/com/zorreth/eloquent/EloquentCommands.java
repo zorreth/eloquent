@@ -85,9 +85,6 @@ public class EloquentCommands {
 
                                 try {
                                     GenerativeService.reloadClient();
-
-                                    context.getSource().sendSuccess(() ->
-                                            Component.literal("§a[Eloquent] AI features enabled!"), false);
                                 } catch (Exception e) {
                                     Eloquent.LOGGER.error("Failed to load OpenAI client!", e);
                                     context.getSource().sendFailure(
@@ -103,11 +100,9 @@ public class EloquentCommands {
                                     .executes(context -> {
                                         String message = StringArgumentType.getString(context, "message");
                                         CommandSourceStack source = context.getSource();
-
                                         ServerPlayer player = source.getPlayerOrException();
 
                                         Entity target = getLookedAtEntity(player, 6.0);
-
                                         if (target == null) {
                                             target = getClosestEntity(player, 15.0);
                                         }
@@ -117,20 +112,33 @@ public class EloquentCommands {
 
                                         if (target == null) {
                                             mobName = ConfigManager.INSTANCE.model;
-                                            systemPrompt = "You are a helpful Minecraft assistant. You answer in a Minecraft chat, so keep your responses short and don't use markdown formatting.";
+                                            systemPrompt = """
+                                                    You are a helpful Minecraft assistant.
+                                                    Answer in Minecraft chat style: keep responses short, no markdown.
+                                                    """;
                                         } else {
-                                            mobName = target.getPlainTextName();
-                                            systemPrompt = "You are a Minecraft " + mobName + ". Act like it, keep your responses short and don't use markdown formatting.";
+                                            mobName = target.getName().getString();
+                                            systemPrompt = """
+                                                    You are a Minecraft %s.
+                                                    Act like it. Keep responses short and do not use markdown.
+                                                    """.formatted(mobName);
                                         }
 
                                         CompletableFuture
                                                 .supplyAsync(() -> GenerativeService.generateAsync(systemPrompt, message))
-                                                .thenAccept(aiReply -> {
+                                                .thenAcceptAsync(aiReply -> player.level().getServer().execute(() -> {
+                                                    if (player.isRemoved() || player.hasDisconnected()) {
+                                                        return;
+                                                    }
+
                                                     SpeakPayload payload = new SpeakPayload(aiReply);
                                                     ServerPlayNetworking.send(player, payload);
 
-                                                    context.getSource().sendSuccess(() ->
-                                                            Component.literal(mobName + ": " + aiReply), false);
+                                                    source.sendSuccess(() -> Component.literal(mobName + ": " + aiReply), false);
+                                                }))
+                                                .exceptionally(ex -> {
+                                                    player.level().getServer().execute(() -> source.sendFailure(Component.literal("AI request failed: " + ex.getMessage())));
+                                                    return null;
                                                 });
 
                                         return Command.SINGLE_SUCCESS;
