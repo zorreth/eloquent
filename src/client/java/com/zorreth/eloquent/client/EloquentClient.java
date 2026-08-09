@@ -16,7 +16,7 @@ public class EloquentClient implements ClientModInitializer {
 
         ClientPlayNetworking.registerGlobalReceiver(SpeakPayload.TYPE, (payload, _) -> {
             LOGGER.info("Starting TTS: {}", payload.text());
-            VoiceService.say(payload.text());
+            VoiceService.say(payload.text(), payload.volume());
         });
     }
 }

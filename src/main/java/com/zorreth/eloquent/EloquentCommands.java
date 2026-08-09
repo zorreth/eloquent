@@ -18,6 +18,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class EloquentCommands {
@@ -102,13 +104,14 @@ public class EloquentCommands {
                                         CommandSourceStack source = context.getSource();
                                         ServerPlayer player = source.getPlayerOrException();
 
-                                        Entity target = getLookedAtEntity(player, 6.0);
+                                        Entity target = getLookedAtEntity(player);
                                         if (target == null) {
-                                            target = getClosestEntity(player, 15.0);
+                                            target = getClosestEntity(player);
                                         }
 
                                         final String systemPrompt;
                                         final String mobName;
+                                        final Entity speakingEntity = target;
 
                                         if (target == null) {
                                             mobName = ConfigManager.INSTANCE.model;
@@ -128,15 +131,27 @@ public class EloquentCommands {
 
                                         CompletableFuture
                                                 .supplyAsync(() -> GenerativeService.generateAsync(systemPrompt, message))
-                                                .thenAcceptAsync(aiReply -> player.level().getServer().execute(() -> {
+                                                .thenAccept(aiReply -> player.level().getServer().execute(() -> {
                                                     if (player.isRemoved() || player.hasDisconnected()) {
                                                         return;
                                                     }
 
-                                                    SpeakPayload payload = new SpeakPayload(aiReply);
-                                                    ServerPlayNetworking.send(player, payload);
+                                                    List<ServerPlayer> players = getNearbyPlayers(player);
 
-                                                    source.sendSuccess(() -> Component.literal(mobName + ": " + aiReply), false);
+                                                    for (ServerPlayer p : players) {
+                                                        float volume = 1.0f;
+
+                                                        if (speakingEntity != null) {
+                                                            double distance = p.distanceTo(speakingEntity);
+                                                            volume = distanceToVolume(distance);
+                                                        }
+
+                                                        if (ServerPlayNetworking.canSend(p, SpeakPayload.TYPE)) {
+                                                            ServerPlayNetworking.send(p, new SpeakPayload(aiReply, volume));
+                                                        }
+
+                                                        p.sendSystemMessage(Component.literal(mobName + ": " + aiReply));
+                                                    }
                                                 }))
                                                 .exceptionally(ex -> {
                                                     player.level().getServer().execute(() -> source.sendFailure(Component.literal("AI request failed: " + ex.getMessage())));
@@ -155,7 +170,9 @@ public class EloquentCommands {
         }));
     }
 
-    public static Entity getLookedAtEntity(ServerPlayer player, double maxDistance) {
+    private static Entity getLookedAtEntity(ServerPlayer player) {
+        double maxDistance = 6.0;
+
         Vec3 eyePos = player.getEyePosition();
         Vec3 look = player.getLookAngle();
         Vec3 end = eyePos.add(look.scale(maxDistance));
@@ -176,8 +193,10 @@ public class EloquentCommands {
         return hit != null ? hit.getEntity() : null;
     }
 
-    public static Entity getClosestEntity(ServerPlayer player, double maxDistance) {
+    private static Entity getClosestEntity(ServerPlayer player) {
         Vec3 playerPos = player.position();
+
+        double maxDistance = 15.0;
         double maxDistSq = maxDistance * maxDistance;
 
         AABB searchBox = player.getBoundingBox().inflate(maxDistance);
@@ -197,5 +216,30 @@ public class EloquentCommands {
         }
 
         return closest;
+    }
+
+    private static List<ServerPlayer> getNearbyPlayers(ServerPlayer origin) {
+        List<ServerPlayer> result = new ArrayList<>();
+        Vec3 originPos = origin.position();
+
+        double maxDistance = 15.0;
+        double maxDistSq = maxDistance * maxDistance;
+
+        for (ServerPlayer player : origin.level().players()) {
+            double distSq = player.distanceToSqr(originPos);
+            if (distSq <= maxDistSq) {
+                result.add(player);
+            }
+        }
+
+        return result;
+    }
+
+    private static float distanceToVolume(double distance) {
+        if (distance >= 20.0) return 0.0f;
+        if (distance <= 0.0) return 1.0f;
+
+        double t = distance / 20.0;
+        return (float) (1.0 - t * t);
     }
 }
