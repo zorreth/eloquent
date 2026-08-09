@@ -10,13 +10,14 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
-import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class EloquentCommands {
@@ -104,26 +105,22 @@ public class EloquentCommands {
                                         CommandSourceStack source = context.getSource();
 
                                         ServerPlayer player = source.getPlayerOrException();
-                                        ServerLevel level = player.level();
 
-                                        AABB searchBox = player.getBoundingBox().inflate(15.0D);
+                                        Entity target = getLookedAtEntity(player, 6.0);
 
-                                        List<Mob> nearbyMobs = level.getEntitiesOfClass(Mob.class, searchBox,
-                                                mob -> player.distanceTo(mob) <= 15.0F
-                                        );
+                                        if (target == null) {
+                                            target = getClosestEntity(player, 15.0);
+                                        }
 
                                         final String systemPrompt;
                                         final String mobName;
 
-                                        if (!nearbyMobs.isEmpty()) {
-                                            int randomIndex = player.getRandom().nextInt(nearbyMobs.size());
-                                            Mob randomMob = nearbyMobs.get(randomIndex);
-                                            mobName = randomMob.getPlainTextName();
-
-                                            systemPrompt = "You are a Minecraft " + mobName + ". Act like it, keep your responses short and don't use markdown formatting.";
-                                        } else {
+                                        if (target == null) {
                                             mobName = ConfigManager.INSTANCE.model;
                                             systemPrompt = "You are a helpful Minecraft assistant. You answer in a Minecraft chat, so keep your responses short and don't use markdown formatting.";
+                                        } else {
+                                            mobName = target.getPlainTextName();
+                                            systemPrompt = "You are a Minecraft " + mobName + ". Act like it, keep your responses short and don't use markdown formatting.";
                                         }
 
                                         CompletableFuture
@@ -146,5 +143,49 @@ public class EloquentCommands {
 
             dispatcher.register(Commands.literal("e").redirect(chatNode));
         }));
+    }
+
+    public static Entity getLookedAtEntity(ServerPlayer player, double maxDistance) {
+        Vec3 eyePos = player.getEyePosition();
+        Vec3 look = player.getLookAngle();
+        Vec3 end = eyePos.add(look.scale(maxDistance));
+
+        AABB searchBox = player.getBoundingBox()
+                .expandTowards(look.scale(maxDistance))
+                .inflate(1.0);
+
+        EntityHitResult hit = ProjectileUtil.getEntityHitResult(
+                player,
+                eyePos,
+                end,
+                searchBox,
+                entity -> !entity.isSpectator() && entity.isAlive(),
+                maxDistance * maxDistance
+        );
+
+        return hit != null ? hit.getEntity() : null;
+    }
+
+    public static Entity getClosestEntity(ServerPlayer player, double maxDistance) {
+        Vec3 playerPos = player.position();
+        double maxDistSq = maxDistance * maxDistance;
+
+        AABB searchBox = player.getBoundingBox().inflate(maxDistance);
+
+        Entity closest = null;
+        double closestDistSq = maxDistSq;
+
+        for (Entity entity : player.level().getEntities(player, searchBox,
+                e -> e.isAlive() && e != player && e.isPickable())) {
+
+            double distSq = entity.distanceToSqr(playerPos);
+
+            if (distSq < closestDistSq) {
+                closestDistSq = distSq;
+                closest = entity;
+            }
+        }
+
+        return closest;
     }
 }
