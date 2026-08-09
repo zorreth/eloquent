@@ -124,6 +124,8 @@ public class EloquentCommands {
                                                     """.formatted(mobName);
                                         }
 
+                                        source.sendSuccess(() -> Component.literal(player.getPlainTextName() + ": " + message), false);
+
                                         CompletableFuture
                                                 .supplyAsync(() -> GenerativeService.generateAsync(systemPrompt, message))
                                                 .thenAcceptAsync(aiReply -> player.level().getServer().execute(() -> {
